@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/app/lib/supabase'
+import { checkRateLimit } from '@/app/lib/rate-limit'
+
+
 
 export async function POST(req: Request) {
     try {
+
+        const ip =
+          req.headers.get("x-forwarded-for") ||
+          req.headers.get("x-real-ip") ||
+          "unknown";
+
+        if (!checkRateLimit(ip)) {
+          return NextResponse.json(
+            { error: "Too many submissions. Try again later." },
+            { status: 429 },
+          );
+        }
         const body = await req.json()
 
         const { type, area, description, incident_date } = body
