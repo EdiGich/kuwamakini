@@ -12,6 +12,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
   const [metrics, setMetrics] = useState({
     total: 0,
     pending: 0,
@@ -34,7 +38,7 @@ export default function AdminPage() {
     setMetrics(data.metrics || {})
     setLoading(false)
   }
-
+// Approve report by ID
   async function approveReport(id: string) {
     setActionLoading(id)
 
@@ -58,29 +62,38 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
-  async function rejectReport(id: string) {
-    setActionLoading(id)
+  // Open reject modal
+  function openRejectModal(id: string) {
+    setSelectedReportId(id)
+    setRejectReason('')
+    setShowRejectModal(true)
+  }
+
+  async function submitReject() {
+    if (!selectedReportId) return
+    setActionLoading(selectedReportId)
 
     const res = await fetch('/api/admin/reports', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: selectedReportId, reason: rejectReason }),
     })
 
     if (res.ok) {
-      setReports((prev) => prev.filter((r) => r.id !== id))
-    
-       // 🔥 Update metrics instantly
-    setMetrics((prev) => ({
-      ...prev,
-      pending: prev.pending - 1,
-      rejected: prev.rejected + 1,
-    }))
-  }
+      setReports((prev) => prev.filter((r) => r.id !== selectedReportId))
+      setMetrics((prev) => ({
+        ...prev,
+        pending: prev.pending - 1,
+        rejected: prev.rejected + 1,
+      }))
+      setShowRejectModal(false)
+      setSelectedReportId(null)
+      setRejectReason('')
+    }
 
     setActionLoading(null)
   }
-
+// Check auth on mount and fetch reports for moderation
   useEffect(() => {
     async function checkAuth() {
       const {
@@ -97,6 +110,16 @@ export default function AdminPage() {
 
     checkAuth()
   }, [])
+
+  const selectedReport = selectedReportId
+    ? reports.find((r) => r.id === selectedReportId)
+    : null
+
+  const previewText = selectedReport?.description
+    ? selectedReport.description.length > 200
+      ? selectedReport.description.slice(0, 200) + '...'
+      : selectedReport.description
+    : ''
 
   if (loading) return <p className="p-8">Loading...</p>
 
@@ -134,11 +157,50 @@ export default function AdminPage() {
         <div className="space-y-4">
           {reports.map((report) => (
             <div key={report.id} className="border p-4 rounded">
-              <p className="text-sm text-gray-500">
-                {report.type} • {report.area || 'No area'}
+              <p className="text-sm text-gray-500 flex items-center gap-2">
+                <span>
+                  {report.type} • {report.area || 'No area'}
+                </span>
+                {report.status === 'approved' && (
+                  <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">Approved</span>
+                )}
+                {report.status === 'rejected' && (
+                  <span className="text-red-700 bg-red-100 px-2 py-0.5 rounded text-xs">Rejected</span>
+                )}
               </p>
 
               <p className="mt-2">{report.description}</p>
+
+              {/* Audit history inside the report card */}
+              {report.report_audit_logs && report.report_audit_logs.length > 0 && (
+                <div className="mt-3 text-sm">
+                  <p className="text-gray-600 font-medium mb-1">Audit history:</p>
+                  <ul className="space-y-1">
+                    {report.report_audit_logs.slice(0, 3).map((a: any) => (
+                      <li key={a.id} className="flex items-start gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs mt-0.5 ${
+                            a.action === 'approved' ? 'bg-green-100 text-green-700' : a.action === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {String(a.action).toUpperCase()}
+                        </span>
+
+                        <div className="flex-1">
+                          <div className="text-gray-700">
+                            {a.admin_email || a.admin_id || 'admin'} • {new Date(a.created_at).toLocaleString()}
+                          </div>
+                          {a.reason && <div className="text-red-600 italic">Reason: {a.reason}</div>}
+                        </div>
+                      </li>
+                    ))}
+
+                    {report.report_audit_logs.length > 3 && (
+                      <li className="text-xs text-gray-500">Showing latest 3 entries</li>
+                    )}
+                  </ul>
+                </div>
+              )}
 
               <div className="flex mt-4 p-2">
                 <button
@@ -155,7 +217,7 @@ export default function AdminPage() {
                 </button>
                 
                 <button
-                  onClick={() => rejectReport(report.id)}
+                  onClick={() => openRejectModal(report.id)}
                   disabled={actionLoading === report.id}
                   className={`bg-red-600 ml-auto text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50
                   ${
@@ -169,6 +231,48 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-opacity-40 flex items-center justify-center">
+          <div className="bg-gray-500 p-6 rounded max-w-md w-full">
+            <h2 className="text-xl font-semibold mb-2">Reason for rejecting report</h2>
+            {selectedReport && (
+              <div className="mb-2 text-sm text-gray-700">
+                <p className="font-medium">Report preview:</p>
+                <p className="text-sm italic">{previewText}</p>
+              </div>
+            )}
+
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Reason for rejection..."
+              className="w-full border rounded p-2 mb-4"
+              rows={4}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false)
+                  setSelectedReportId(null)
+                }}
+                className="px-4 py-2 rounded border"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={submitReject}
+                className="px-4 py-2 rounded bg-red-600 text-white"
+                disabled={actionLoading === selectedReportId}
+              >
+                {actionLoading === selectedReportId ? 'Processing...' : 'Submit'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
