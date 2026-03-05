@@ -1,4 +1,6 @@
+
 'use client'
+import HamburgerMenu from "@/app/components/HamburgerMenu";
 
 import { useEffect, useState } from 'react'
 
@@ -41,9 +43,12 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">
-          Mombasa Scam Watch
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">
+            kuwaMakini
+          </h1>
+          <HamburgerMenu />
+        </div>
         <a
           href="/report"
           className="inline-block bg-linear-to-r from-blue-700 to-blue-900 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-900 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold uppercase tracking-wide relative overflow-hidden group sword-glimmer"
