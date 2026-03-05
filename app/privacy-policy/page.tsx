@@ -1,28 +1,37 @@
 import BackToTop from "../components/BackToTop";
+import HamburgerMenu from "@/app/components/HamburgerMenu";
 
 export default function PrivacyPolicy() {
-  const sections = [
-    { id: "intro", title: "1. Introduction" },
-    { id: "anonymous", title: "2. Anonymous Reporting" },
-    { id: "public", title: "3. Public Reports & Rules" },
-    { id: "info", title: "4. Information Processed" },
-    { id: "abuse", title: "5. Abuse Prevention" },
-    { id: "purpose", title: "6. Purpose of Data" },
-    { id: "moderation", title: "7. Moderation" },
-    { id: "security", title: "8. Data Security" },
-    { id: "noAuthority", title: "9. Reporting to Authorities" },
-    { id: "updates", title: "10. Policy Updates" },
-];
+    const sections = [
+        { id: "intro", title: "1. Introduction" },
+        { id: "anonymous", title: "2. Anonymous Reporting" },
+        { id: "public", title: "3. Public Reports & Rules" },
+        { id: "info", title: "4. Information Processed" },
+        { id: "abuse", title: "5. Abuse Prevention" },
+        { id: "purpose", title: "6. Purpose of Data" },
+        { id: "moderation", title: "7. Moderation" },
+        { id: "security", title: "8. Data Security" },
+        { id: "noAuthority", title: "9. Reporting to Authorities" },
+        { id: "responsible-awareness", title: "10. Responsible Awareness" },
+        { id: "updates", title: "11. Policy Updates" }
+    ];
 
   return (
     <main className="max-w-2xl  mx-auto p-6 text-white leading-relaxed">
       {/* Header */}
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <div className="flex flex-col text-sm text-gray-500 border-b pb-4">
-          <span>Last Updated: March 5, 2026</span>
-          <span>Platform: kuwaMakini</span>
-        </div>
+          <header className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                  <div>
+                      <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
+                      <div className="flex flex-col text-sm text-gray-500 border-b pb-4">
+                          <span>Last Updated: March 5, 2026</span>
+                          <span>Platform: kuwaMakini</span>
+                      </div>
+                  </div>
+
+                  <HamburgerMenu />
+              </div>
+
       </header>
 
       
@@ -203,48 +212,73 @@ export default function PrivacyPolicy() {
         </section>
 
         {/* Section 9 */}
-        <section id="noAuthority">
-            <h2 className="text-xl font-semibold mt-6 mb-2">
-9. Reporting to Authorities
-</h2>
+                <section id="noAuthority">
+                    <h2 className="text-xl font-semibold mt-6 mb-2">
+                        9. Reporting to Authorities
+                    </h2>
 
-<p className="mb-4">
-kuwaMakini is an awareness platform designed to help communities stay
-informed about scam tactics and deceptive activities.
-</p>
+                    <p className="mb-4">
+                        kuwaMakini is an awareness platform designed to help communities stay
+                        informed about scam tactics and deceptive activities.
+                    </p>
 
-<p className="mb-4">
-Submitting a report on this platform does not replace reporting the
-incident to local law enforcement or relevant authorities.
-</p>
+                    <p className="mb-4">
+                        Submitting a report on this platform does not replace reporting the
+                        incident to local law enforcement or relevant authorities.
+                    </p>
 
-<p className="mb-4">
-If you have experienced fraud, theft, harassment, or any criminal
-activity, you are encouraged to report the incident to the appropriate
-authorities so that official investigations and legal action can take
-place.
-</p>
+                    <p className="mb-4">
+                        If you have experienced fraud, theft, harassment, or any criminal
+                        activity, you are encouraged to report the incident to the appropriate
+                        authorities so that official investigations and legal action can take
+                        place.
+                    </p>
 
-<p className="mb-4">
-Reports shared on kuwaMakini are intended for public awareness and
-community education. The platform does not conduct criminal
-investigations or enforce legal action.
-</p>
-        </section>
+                    <p className="mb-4">
+                        Reports shared on kuwaMakini are intended for public awareness and
+                        community education. The platform does not conduct criminal
+                        investigations or enforce legal action.
+                    </p>
+                </section>
 
-        {/* Section 10 */}
-        <section id="updates" className="pb-12">
-          <h2 className="text-xl font-semibold mb-3">
-            10. Updates to This Policy
+{/* Section 10: Responsible Awareness */}
+        <section id="responsible-awareness" className="p-5 bg-slate-50 rounded-lg border border-slate-20">
+          <h2 className="text-xl font-semibold text-slate-800 mb-3">
+            10. Responsible Awareness
           </h2>
-          <p>
-            This Privacy Policy may be updated periodically as the platform evolves.
-            Updates will be reflected on this page.
+          
+          <p className="mb-4 text-slate-900">
+            The platform, (kuwaMakini) shares scam awareness for public safety. While transparency
+            helps communities stay informed, detailed operational information could
+            potentially be misused.
+          </p>
+
+          <p className="mb-4 text-slate-900">
+            For this reason, reports are reviewed and may be edited to remove
+            specific details that could enable harmful activity. The platform
+            focuses on identifying patterns, warning signs, and trends rather than
+            publishing step-by-step descriptions of scams.
+          </p>
+
+          <p className="mb-4 text-slate-900">
+            Older reports may be summarized through <strong> analytics</strong> and <strong>visualizations</strong> to
+            highlight trends while reducing the risk of misuse.
           </p>
         </section>
-      </div>
 
-      <BackToTop />
-    </main>
-  );
+                {/* Section 11 */}
+                <section id="updates" className="pb-12">
+                    <h2 className="text-xl font-semibold mb-3">
+                        10. Updates to This Policy
+                    </h2>
+                    <p>
+                        This Privacy Policy may be updated periodically as the platform evolves.
+                        Updates will be reflected on this page.
+                    </p>
+                </section>
+            </div>
+
+            <BackToTop />
+        </main>
+    );
 }

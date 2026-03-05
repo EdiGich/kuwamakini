@@ -47,7 +47,6 @@ export default function Home() {
           <h1 className="text-3xl font-bold">
             kuwaMakini
           </h1>
-          <HamburgerMenu />
         </div>
         <a
           href="/report"
@@ -56,6 +55,7 @@ export default function Home() {
         >
           Report a Scam
         </a>
+         <HamburgerMenu />
       </div>
      {/* Trending Section */}
       {trending.length > 0 && (
