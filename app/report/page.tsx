@@ -61,9 +61,17 @@ export default function ReportPage() {
 
   return (
     <main className="min-h-screen p-8 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">
-        Report a Scam Method
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">
+          Report a Scam
+        </h1>
+        <a
+          href="/"
+          className="inline-block bg-linear-to-r from-gray-600 to-yellow-800 text-white px-6 py-3 rounded-lg hover:from-yellow-700 hover:to-gray-900 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold uppercase tracking-wide relative overflow-hidden group sword-glimmer"
+        >
+          Back to Home
+        </a>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -106,7 +114,8 @@ export default function ReportPage() {
           type="date"
           value={incidentDate}
           onChange={(e) => setIncidentDate(e.target.value)}
-          className="w-full border p-2 rounded"
+          max={new Date().toISOString().split('T')[0]}
+          className="w-full bg-gray-500 text-white border p-2 rounded "
         />
 
         <button

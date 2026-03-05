@@ -35,9 +35,9 @@ export async function GET() {
 // Fetch pending reports for moderation list.
   const { data: pendingReports, error } = await (await supabase)
     .from('scam_reports')
-    .select('*')
+    .select(`*, report_audit_logs(*)`)
     .eq('is_approved', false)
-    .eq('status', 'pending' )
+    .eq('status', 'pending')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -120,7 +120,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ success: true })
 }
 
-/* -------------------- DELETE REPORT -------------------- */
+/* -------------------- reject REPORT -------------------- */
 
 export async function DELETE(req: Request) {
   const auth = await checkAdmin()
