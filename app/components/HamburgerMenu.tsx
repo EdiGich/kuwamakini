@@ -55,7 +55,10 @@ export default function HamburgerMenu() {
         <div className="p-2">
           <MenuLink href="/" label="Dashboard" icon="📊" onClick={() => setOpen(false)} />
           <MenuLink href="/privacy-policy" label="Privacy Policy" icon="🛡️" onClick={() => setOpen(false)} />
+          <MenuLink href="/community-guidelines" label="Community Guidelines" icon="📜" onClick={() => setOpen(false)} />
+          <MenuLink href="/how-reporting-works" label="How Reporting Works" icon="🔍" onClick={() => setOpen(false)} />
           <MenuLink href="/about-us" label="About Us" icon="💡" onClick={() => setOpen(false)} />
+          <MenuLink href="/contact" label="Contact" icon="✉️" onClick={() => setOpen(false)} />
         </div>
         
         {/* Decorative footer for the menu */}
