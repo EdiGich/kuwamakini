@@ -1,37 +1,58 @@
 @import "tailwindcss";
 
 :root {
+  /* Light Mode - Keeping it clean if ever toggled */
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --foreground: #0f172a; /* Slate 900 */
+  --accent: #f59e0b;     /* Amber 500 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Deep "Midnight" Dark Mode */
+    --background: #020617; /* Slate 950 - slightly deeper than 0a0a0a */
+    --foreground: #f8fafc; /* Slate 50 */
+    --accent: #f59e0b;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
+/* Custom Scrollbar for the "Reports Feed" max-height container */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5); /* Slate 800 transparent */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #f59e0b; /* Amber 500 */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #d97706; /* Amber 600 */
+}
+
+/* Your Sword Glimmer - Added to the Report Button */
 @keyframes swordGlimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
+  0% { left: -100%; }
+  30% { left: 100%; } /* Faster pass */
+  100% { left: 100%; } /* Long pause before next glimmer */
+}
+
+.sword-glimmer {
+  position: relative; /* Crucial: Sets the boundary */
+  overflow: hidden;    /* Crucial: Cuts off the leak */
+  isolation: isolate;  /* Ensures the pseudo-element stays behind text if needed */
 }
 
 .sword-glimmer::after {
@@ -39,13 +60,20 @@ body {
   position: absolute;
   top: 0;
   left: -100%;
-  width: 100%;
+  width: 50%;
   height: 100%;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.3),
+    rgba(255, 255, 255, 0.4),
     transparent
   );
-  animation: swordGlimmer 3s infinite;
+  transform: skewX(-25deg);
+  animation: swordGlimmer 4s infinite ease-in-out;
+  pointer-events: none; /* User can click "through" the glimmer */
+  z-index: 1;
+}
+/* Smooth Scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
 }
