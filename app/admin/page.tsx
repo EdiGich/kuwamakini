@@ -30,6 +30,10 @@ export default function AdminPage() {
   const [aiProcessing, setAIProcessing] = useState<string | null>(null)
   const [aiResults, setAIResults] = useState<{ [reportId: string]: any }>({})
 
+  // Manual Approval State
+  const [manualApprovals, setManualApprovals] = useState<{ [reportId: string]: any }>({})
+  const [manualFormSubmitting, setManualFormSubmitting] = useState<string | null>(null)
+
   async function startAIProcess(report: any) {
     setAIProcessing(report.id)
     try {
@@ -146,6 +150,77 @@ export default function AdminPage() {
   // Cancel AI sanitization
   function discardAISanitization(reportId: string) {
     setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+  }
+
+  // Open manual approval form
+  function openManualApprovalForm(report: any) {
+    setManualApprovals(prev => ({
+      ...prev,
+      [report.id]: {
+        cleanDescription: report.description,
+        scamCategory: '',
+        county: '',
+        specificArea: report.area || '',
+        riskLevel: 3
+      }
+    }))
+  }
+
+  // Update manual form field
+  function updateManualField(reportId: string, field: string, value: any) {
+    setManualApprovals(prev => ({
+      ...prev,
+      [reportId]: {
+        ...prev[reportId],
+        [field]: value
+      }
+    }))
+  }
+
+  // Submit manual approval
+  async function submitManualApproval(report: any, formData: any) {
+    if (!formData.cleanDescription || !formData.scamCategory) {
+      setToast({ message: "Clean description and category are required", type: 'error' })
+      return
+    }
+
+    setManualFormSubmitting(report.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const res = await fetch('/api/admin/manual-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportId: report.id,
+          adminId: user?.id,
+          cleanDescription: formData.cleanDescription,
+          scamCategory: formData.scamCategory,
+          county: formData.county,
+          specificArea: formData.specificArea,
+          riskLevel: formData.riskLevel
+        })
+      })
+
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setReports(prev => prev.filter(r => r.id !== report.id))
+        setMetrics(prev => ({ ...prev, pending: prev.pending - 1, approved: prev.approved + 1 }))
+        setManualApprovals(prev => { const newForms = { ...prev }; delete newForms[report.id]; return newForms })
+        setToast({ message: "Report manually approved and published!", type: 'info' })
+        setTimeout(() => setToast(null), 3000)
+      } else {
+        setToast({ message: data.error || "Failed to approve report", type: 'error' })
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Network error", type: 'error' })
+    } finally {
+      setManualFormSubmitting(null)
+    }
+  }
+
+  // Cancel manual approval
+  function discardManualApproval(reportId: string) {
+    setManualApprovals(prev => { const newForms = { ...prev }; delete newForms[reportId]; return newForms })
   }
 
   // 1. Fetching logic
@@ -359,7 +434,6 @@ export default function AdminPage() {
                 {aiResults[report.id]?.error && (
                   <div className="mb-6 bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl animate-in fade-in">
                     <p className="text-rose-500 text-sm font-semibold mb-2">❌ AI Processing Error</p>
-                    {/* <p className="text-rose-400 text-xs">{aiResults[report.id].error}</p> */}
                     <p className="text-rose-400 text-xs">
                       {String(aiResults[report.id].error)}
                     </p>
@@ -369,6 +443,94 @@ export default function AdminPage() {
                     >
                       Dismiss
                     </button>
+                  </div>
+                )}
+
+                {/* Manual Approval Form */}
+                {manualApprovals[report.id] && (
+                  <div className="mb-6 bg-slate-800/50 border border-emerald-500/30 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                    <h4 className="text-sm font-black text-emerald-500 uppercase tracking-widest mb-4">📋 Manual Approval Form</h4>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sanitized Description *</label>
+                        <textarea
+                          value={manualApprovals[report.id].cleanDescription}
+                          onChange={(e) => updateManualField(report.id, 'cleanDescription', e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                          rows={4}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Scam Category *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Fake Landlord, ATM Distraction, Pickpocketing"
+                          value={manualApprovals[report.id].scamCategory}
+                          onChange={(e) => updateManualField(report.id, 'scamCategory', e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">County</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Mombasa"
+                            value={manualApprovals[report.id].county}
+                            onChange={(e) => updateManualField(report.id, 'county', e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Specific Area</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Nyali"
+                            value={manualApprovals[report.id].specificArea}
+                            onChange={(e) => updateManualField(report.id, 'specificArea', e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Risk Level (1-5)</label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <button
+                              key={level}
+                              onClick={() => updateManualField(report.id, 'riskLevel', level)}
+                              className={`flex-1 py-2 rounded-lg font-bold text-xs uppercase transition ${
+                                manualApprovals[report.id].riskLevel === level
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                              }`}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-slate-700">
+                      <button
+                        onClick={() => discardManualApproval(report.id)}
+                        className="flex-1 py-2 text-sm rounded-lg text-slate-400 hover:bg-slate-700 transition-all uppercase font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => submitManualApproval(report, manualApprovals[report.id])}
+                        disabled={manualFormSubmitting === report.id}
+                        className="flex-1 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase transition-all disabled:opacity-50"
+                      >
+                        {manualFormSubmitting === report.id ? 'Submitting...' : 'Submit & Publish'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -392,11 +554,11 @@ export default function AdminPage() {
 
                 <div className="flex items-center gap-4 pt-6 border-t border-slate-800/50">
                   <button
-                    onClick={() => approveReport(report.id)}
-                    disabled={!!actionLoading}
+                    onClick={() => openManualApprovalForm(report)}
+                    disabled={!!manualApprovals[report.id] || !!actionLoading}
                     className="flex-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-50 uppercase text-xs tracking-widest"
                   >
-                    {actionLoading === report.id ? 'Processing...' : 'Approve Report'}
+                    {manualApprovals[report.id] ? 'Form Open' : 'Approve Report'}
                   </button>
                   {/* AI BUTTON */}
                   <button
