@@ -66,6 +66,7 @@ export default function Contact() {
             <input
               type="text"
               placeholder="e.g. Anonymous Reporter"
+              maxLength={30}
               className="w-full text-slate-400 border border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -81,22 +82,28 @@ export default function Contact() {
               placeholder="email@example.com"
               className="w-full border text-slate-400 border-slate-200 p-3 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
               value={form.email}
+              maxLength={60}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-300 mb-1">
-              Message <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              placeholder="Describe the issue you are referring to..."
-              className="w-full border text-slate-100 border-slate-200 p-3 rounded-xl min-h-37.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
-              required
-              value={form.message}
-              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-            />
-          </div>
+                  <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1">
+                          Message <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                          placeholder="Describe the issue you are referring to..."
+                          className="w-full border text-slate-100 border-slate-200 p-3 rounded-xl min-h-37.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                          required
+                          maxLength={3000}
+                          value={form.message}
+                          onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                      />
+                      <div className="flex justify-between text-xs text-slate-400 mt-1">
+                          <span>Maximum 3000 characters</span>
+                          <span>{form.message.length} / 3000</span>
+                      </div>
+                  </div>
 
           <button
             type="submit"

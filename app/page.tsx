@@ -1,6 +1,7 @@
 'use client'
 
 import HamburgerMenu from "@/app/components/HamburgerMenu";
+import BackToTop from "./components/BackToTop";
 import { useEffect, useState } from 'react'
 
 export default function Home() {
@@ -176,6 +177,7 @@ export default function Home() {
           <Dashboard />
         </div>
       </section>
+      <BackToTop />
     </main>
   )
 }

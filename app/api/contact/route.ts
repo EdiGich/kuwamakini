@@ -17,10 +17,16 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!message) {
+    if (!message || message.trim() === "") {
       return NextResponse.json(
         { error: "Message is required" },
         { status: 400 }
+      )
+    }
+    if (message.length > 3000) {
+      return NextResponse.json(
+        {error : "Message must be under 3000 characters"},
+        { status: 400}
       )
     }
 
