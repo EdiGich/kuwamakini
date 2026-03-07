@@ -26,6 +26,128 @@ export default function AdminPage() {
 
   const [metrics, setMetrics] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 })
 
+  // AI Inline State (shows result below report, not in modal)
+  const [aiProcessing, setAIProcessing] = useState<string | null>(null)
+  const [aiResults, setAIResults] = useState<{ [reportId: string]: any }>({})
+
+  async function startAIProcess(report: any) {
+    setAIProcessing(report.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setToast({ message: "You must be logged in", type: 'error' })
+        setAIResults(prev => ({ ...prev, [report.id]: { error: "Authentication required" } }))
+        setAIProcessing(null)
+        return
+      }
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      const res = await fetch('/api/admin/process-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: report.id, adminId: user?.id }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      // Check HTTP status first
+      if (!res.ok) {
+        let errorMsg = `Server error: ${res.status}`
+        try {
+          const errorData = await res.json()
+          // errorMsg = errorData.error || errorMsg
+          errorMsg = typeof errorData.error === "string"
+            ? errorData.error
+            : JSON.stringify(errorData.error)
+
+        } catch (e) {
+          // If error response isn't JSON, use the status message
+        }
+        setToast({ message: errorMsg, type: 'error' })
+        setAIResults(prev => ({ ...prev, [report.id]: { error: errorMsg } }))
+        return
+      }
+
+      let data = null
+      try {
+        data = await res.json()
+        console.log("AI API response:", data)
+      } catch (jsonErr) {
+        const errorMsg = "AI service returned invalid response format"
+        setToast({ message: errorMsg, type: 'error' })
+        setAIResults(prev => ({ ...prev, [report.id]: { error: errorMsg } }))
+        return
+      }
+
+      // Validate response structure
+      if (!data.success) {
+        const errorMsg = data.error || "AI processing failed"
+        setToast({ message: errorMsg, type: 'error' })
+        setAIResults(prev => ({ ...prev, [report.id]: { error: errorMsg } }))
+        return
+      }
+
+      if (!data.result || !data.result.clean_description) {
+        const errorMsg = "AI returned incomplete data"
+        setToast({ message: errorMsg, type: 'error' })
+        setAIResults(prev => ({ ...prev, [report.id]: { error: errorMsg } }))
+        return
+      }
+
+      // Success! Store the result
+      setAIResults(prev => ({ ...prev, [report.id]: data.result }))
+      setToast({ message: "Report sanitized successfully!", type: 'info' })
+      setTimeout(() => setToast(null), 2000)
+    } catch (err: any) {
+      let errorMsg = "Failed to process report"
+      if (err.name === 'AbortError') {
+        errorMsg = "AI processing timed out (took too long)"
+      } else if (err instanceof TypeError) {
+        errorMsg = "Network error - check your connection"
+      } else {
+        // errorMsg = err?.message || errorMsg
+        errorMsg = typeof err?.message === "string"
+          ? err.message
+          : JSON.stringify(err)
+      }
+      setToast({ message: errorMsg, type: 'error' })
+      setAIResults(prev => ({ ...prev, [report.id]: { error: errorMsg } }))
+    } finally {
+      setAIProcessing(null)
+    }
+  }
+
+  // Approve sanitized AI result and publish
+  async function approveAISanitization(reportId: string) {
+    setActionLoading(reportId)
+    try {
+      const res = await fetch('/api/admin/reports', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: reportId })
+      })
+      if (res.ok) {
+        setReports(prev => prev.filter(r => r.id !== reportId))
+        setMetrics(prev => ({ ...prev, pending: prev.pending - 1, approved: prev.approved + 1 }))
+        setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+        setToast({ message: "Report sanitized and published!", type: 'info' })
+        setTimeout(() => setToast(null), 3000)
+      }
+    } catch (err) {
+      setToast({ message: "Failed to approve report", type: 'error' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Cancel AI sanitization
+  function discardAISanitization(reportId: string) {
+    setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+  }
+
   // 1. Fetching logic
   async function fetchReports() {
     const res = await fetch('/api/admin/reports')
@@ -183,6 +305,73 @@ export default function AdminPage() {
 
                 <p className="text-slate-300 leading-relaxed mb-8 text-lg whitespace-pre-wrap">{report.description}</p>
 
+                {/* AI Sanitization Result - Inline Display */}
+                {aiResults[report.id] && !aiResults[report.id].error && (
+                  <div className="mb-6 bg-slate-800/50 border border-amber-500/30 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-sm font-black text-amber-500 uppercase tracking-widest">✨ AI Sanitized Version</h4>
+                      <span className="bg-amber-500/10 text-amber-500 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/20">
+                        Risk: {aiResults[report.id].risk_level}/5
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sanitized Description</label>
+                        <p className="text-slate-200 text-sm italic bg-slate-950 p-4 rounded-lg border border-slate-800">"{aiResults[report.id].clean_description}"</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Category</p>
+                          <p className="text-white font-bold text-xs">{aiResults[report.id].scam_category}</p>
+                        </div>
+                        <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1">County</p>
+                          <p className="text-white font-bold text-xs">{aiResults[report.id].county}</p>
+                        </div>
+                        <div className="bg-slate-700/50 p-3 rounded-lg border border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Area</p>
+                          <p className="text-white font-bold text-xs">{aiResults[report.id].specific_area}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-slate-700">
+                      <button
+                        onClick={() => discardAISanitization(report.id)}
+                        className="flex-1 py-2 text-sm rounded-lg text-slate-400 hover:bg-slate-700 transition-all uppercase font-bold"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        onClick={() => approveAISanitization(report.id)}
+                        disabled={actionLoading === report.id}
+                        className="flex-1 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase transition-all disabled:opacity-50"
+                      >
+                        {actionLoading === report.id ? 'Publishing...' : 'Approve & Publish'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Error Display */}
+                {aiResults[report.id]?.error && (
+                  <div className="mb-6 bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl animate-in fade-in">
+                    <p className="text-rose-500 text-sm font-semibold mb-2">❌ AI Processing Error</p>
+                    {/* <p className="text-rose-400 text-xs">{aiResults[report.id].error}</p> */}
+                    <p className="text-rose-400 text-xs">
+                      {String(aiResults[report.id].error)}
+                    </p>
+                    <button
+                      onClick={() => discardAISanitization(report.id)}
+                      className="text-xs mt-2 text-rose-400 underline hover:text-rose-300"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+
                 {/* Similarity Cluster Alert */}
                 {similarReports.length > 0 && selectedReportId === report.id && (
                   <div className="mb-6 bg-rose-500/5 border border-rose-500/20 p-4 rounded-2xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
@@ -208,6 +397,14 @@ export default function AdminPage() {
                     className="flex-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all active:scale-95 disabled:opacity-50 uppercase text-xs tracking-widest"
                   >
                     {actionLoading === report.id ? 'Processing...' : 'Approve Report'}
+                  </button>
+                  {/* AI BUTTON */}
+                  <button
+                    onClick={() => startAIProcess(report)}
+                    disabled={aiProcessing === report.id || !!aiResults[report.id]}
+                    className="flex-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-2xl transition-all active:scale-95 uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                  >
+                    {aiProcessing === report.id ? '⏳ Processing...' : '✨ Sanitize with AI'}
                   </button>
                   <button
                     onClick={() => openRejectModal(report.id)}
@@ -291,8 +488,8 @@ export default function AdminPage() {
       {toast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-200 animate-in slide-in-from-bottom-5 duration-300">
           <div className={`px-6 py-3 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center gap-3 ${toast.type === 'error'
-              ? 'bg-rose-500/10 border-rose-500/50 text-rose-500'
-              : 'bg-slate-900/90 border-slate-700 text-amber-500'
+            ? 'bg-rose-500/10 border-rose-500/50 text-rose-500'
+            : 'bg-slate-900/90 border-slate-700 text-amber-500'
             }`}>
             <span className="text-lg">{toast.type === 'error' ? '🚫' : '🛡️'}</span>
             <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
@@ -300,6 +497,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
     </main>
   )
 }
