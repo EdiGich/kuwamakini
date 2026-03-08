@@ -5,28 +5,28 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
 
     const type = searchParams.get('type')
-    const area = searchParams.get('area')
+    const county = searchParams.get('county')
     const sort = searchParams.get('sort')
 
     let query = supabase 
-    .from('scam_reports')
+    .from('processed_reports')
     .select('*')
 
     //filtering
     if (type) {
-        query = query.eq('type', type)
+        query = query.eq('scam_category', type)
 }
 
-if (area) {
-    query = query.eq('area', area)
+if (county) {
+    query = query.eq('county', county)
 }
 
     //Sorting
     if (sort == 'recent') {
-        query = query.order('created_at', { ascending: false})
+        query = query.order('original_created_at', { ascending: false})
         } else {
             //Default sort
-            query = query.order('created_at', { ascending: true})
+            query = query.order('original_created_at', { ascending: true})
         }
 
         const { data, error} = await query 
