@@ -2,6 +2,7 @@
 
 import BackToTop from "../components/BackToTop";
 import HamburgerMenu from "@/app/components/HamburgerMenu";
+import Footer from "../components/Footer";
 
 export default function PrivacyPolicy() {
   const sections = [
@@ -19,7 +20,7 @@ export default function PrivacyPolicy() {
   ];
 
   return (
-    <main className="max-w-5xl mx-auto p-6 text-slate-300 leading-relaxed pb-20">
+    <main className="max-w-5xl mx-auto p-6 text-slate-300 leading-relaxed pb-0">
       {/* Header Area */}
       <header className="mb-12 flex justify-between items-start border-b border-slate-800 pb-8">
         <div>
@@ -174,6 +175,7 @@ manipulate scam reports.
       </div>
 
       <BackToTop />
+      <Footer />
     </main>
   );
 }

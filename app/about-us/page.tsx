@@ -1,9 +1,10 @@
 import BackToTop from "../components/BackToTop";
+import Footer from "../components/Footer";
 import HamburgerMenu from "../components/HamburgerMenu";
 
 export default function AboutUs() {
   return (
-    <main className="max-w-3xl mx-auto p-6 text-white-800 leading-relaxed pb-20">
+    <main className="max-w-3xl mx-auto p-6 text-white-800 leading-relaxed pb-0">
       {/* Hero Section */}
           <header className="mb-12 border-b pb-8">
               <div className="flex items-center justify-between mb-6">
@@ -137,6 +138,7 @@ export default function AboutUs() {
 
       {/* Reusable Back to Top Component */}
       <BackToTop />
+      <Footer />
     </main>
   );
 }

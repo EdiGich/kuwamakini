@@ -2,10 +2,11 @@
 
 import BackToTop from "../components/BackToTop";
 import HamburgerMenu from "@/app/components/HamburgerMenu";
+import Footer from "../components/Footer";
 
 export default function CommunityGuidelines() {
   return (
-    <main className="max-w-3xl mx-auto p-6 text-slate-800 leading-relaxed pb-20">
+    <main className="max-w-3xl mx-auto p-6 text-slate-800 leading-relaxed pb-0">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-slate-200">Community Guidelines</h1>
         <HamburgerMenu />
@@ -120,6 +121,7 @@ export default function CommunityGuidelines() {
       </div>
 
       <BackToTop />
+      <Footer />
     </main>
   );
 }

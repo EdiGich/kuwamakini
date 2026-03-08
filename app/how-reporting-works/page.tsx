@@ -2,6 +2,7 @@
 
 import BackToTop from "../components/BackToTop";
 import HamburgerMenu from "@/app/components/HamburgerMenu";
+import Footer from "../components/Footer";
 
 export default function HowReportingWorks() {
   const steps = [
@@ -28,7 +29,7 @@ export default function HowReportingWorks() {
   ];
 
   return (
-    <main className="max-w-3xl mx-auto p-6 text-slate-200 leading-relaxed pb-20">
+    <main className="max-w-3xl mx-auto p-6 text-slate-200 leading-relaxed pb-0">
       <div className="flex justify-between items-center mb-10">
         <h1 className="text-3xl font-bold text-white tracking-tight">How Reporting Works</h1>
         <HamburgerMenu />
@@ -85,6 +86,7 @@ export default function HowReportingWorks() {
       </footer>
 
       <BackToTop />
+      <Footer />
     </main>
   );
 }

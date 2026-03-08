@@ -1,6 +1,7 @@
 "use client"; 
 import HamburgerMenu from "@/app/components/HamburgerMenu";
 import BackToTop from "../components/BackToTop";
+import Footer from "../components/Footer";
 
 import { useState } from "react";
 
@@ -42,7 +43,7 @@ export default function Contact() {
   }
 
   return (
-      <main className="max-w-2xl mx-auto p-6 text-slate-800">
+      <main className="max-w-2xl mx-auto p-6 pb-0 text-slate-800">
           <header className="mb-8 border-b pb-6">
               <div className="flex items-center justify-between mb-6">
                   <div className="mr-10">
@@ -130,6 +131,7 @@ export default function Contact() {
         </p>
       </footer>
       <BackToTop />
+      <Footer />
     </main>
   );
 }

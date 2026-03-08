@@ -3,6 +3,7 @@
 import HamburgerMenu from "@/app/components/HamburgerMenu";
 import BackToTop from "./components/BackToTop";
 import { useEffect, useState } from 'react'
+import Footer from "./components/Footer";
 
 const KENYAN_COUNTIES = [
   'Mombasa', 'Kwale', 'Kilifi', 'Tana River', 'Lamu', 'Taita-Taveta',
@@ -138,7 +139,7 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen p-6 md:p-12 max-w-5xl mx-auto text-slate-200">
+    <main className="min-h-screen p-6 md:p-12 max-w-5xl mx-auto text-slate-200 pb-0">
       {/* Onboarding Modal */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -321,7 +322,7 @@ export default function Home() {
               <button
                 onClick={generateAISummary}
                 disabled={aiLoading}
-                className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-4 py-2 rounded-lg font-bold text-xs tracking-wide transition-all active:scale-95"
+                className="bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 px-4 py-2 rounded-lg font-bold text-xs tracking-wide transition-all active:scale-95"
               >
                 {aiLoading ? '🤖 Analyzing...' : '✨ AI Summary'}
               </button>
@@ -386,7 +387,7 @@ export default function Home() {
 
       {/* AI Summary Section */}
       {aiSummary && (
-        <section id="ai-summary-section" className="mb-20 bg-gradient-to-br from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-3xl p-8 shadow-xl">
+        <section id="ai-summary-section" className="mb-20 bg-gradient-br from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-3xl p-8 shadow-xl">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-2xl">🤖</span>
             <h2 className="text-2xl font-bold text-white">AI Safety Summary</h2>
@@ -431,6 +432,7 @@ export default function Home() {
         </div>
       </section>
       <BackToTop />
+      <Footer />
     </main>
   )
 }
