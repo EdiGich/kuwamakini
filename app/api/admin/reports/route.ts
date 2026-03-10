@@ -85,13 +85,57 @@ export async function PATCH(req: Request) {
   }
 
   const { supabase } = auth
-  const { id } = await req.json()
+  const { 
+    id, 
+    // Optional fields for AI-sanitized reports
+    cleanDescription, 
+    scamCategory, 
+    county, 
+    specificArea, 
+    riskLevel,
+    processingMethod = 'ai'
+  } = await req.json()
 
   if (!id) {
     return NextResponse.json({ error: 'Report ID required' }, { status: 400 })
   }
 
-  // 🔹 Update report
+  // If AI data is provided, insert into processed_reports (for AI-sanitized reports)
+  if (cleanDescription && scamCategory) {
+    // Get original report for metadata
+    const { data: originalReport } = await (await supabase)
+      .from('scam_reports')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    // Get current admin user
+    const {
+      data: { user },
+    } = await (await supabase).auth.getUser()
+
+    // Insert into processed_reports
+    const { error: insertError } = await (await supabase)
+      .from('processed_reports')
+      .insert({
+        original_id: id,
+        clean_description: cleanDescription,
+        scam_category: scamCategory,
+        county: county || 'Unknown',
+        specific_area: specificArea || originalReport?.area || 'Unknown',
+        original_incident_date: originalReport?.incident_date,
+        original_created_at: originalReport?.created_at,
+        processing_method: processingMethod,
+        risk_level: Number(riskLevel) || 3,
+        moderated_by: user?.id
+      })
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+  }
+
+  // 🔹 Update report status
   const { error } = await (await supabase)
     .from('scam_reports')
     .update({ is_approved: true, status: 'approved' })

@@ -106,7 +106,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false)
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 border-b border-slate-800 pb-8">
         <div>
-          <Link href="/admin" className="text-amber-500 hover:text-amber-400 text-xs font-bold uppercase tracking-[0.2em] mb-3 inline-block transition-colors">
+          <Link href="/admn-nyuma-ya-tent" className="text-amber-500 hover:text-amber-400 text-xs font-bold uppercase tracking-[0.2em] mb-3 inline-block transition-colors">
             ← Back to Moderation
           </Link>
           <h1 className="text-4xl font-black text-white tracking-tight">System Audit</h1>
