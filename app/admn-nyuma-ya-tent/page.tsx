@@ -102,7 +102,7 @@ export default function AdminPage() {
       }
 
       // Success! Store the result
-      setAIResults(prev => ({ ...prev, [report.id]: data.result }))
+      setAIResults(prev => ({ ...prev, [report.id]: { ...data.result, is_edited: false } }))
       setToast({ message: "Report sanitized successfully!", type: 'info' })
       setTimeout(() => setToast(null), 2000)
     } catch (err: any) {
@@ -128,20 +128,80 @@ export default function AdminPage() {
   async function approveAISanitization(reportId: string) {
     setActionLoading(reportId)
     try {
-      const res = await fetch('/api/admin/reports', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reportId })
-      })
-      if (res.ok) {
-        setReports(prev => prev.filter(r => r.id !== reportId))
-        setMetrics(prev => ({ ...prev, pending: prev.pending - 1, approved: prev.approved + 1 }))
-        setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
-        setToast({ message: "Report sanitized and published!", type: 'info' })
-        setTimeout(() => setToast(null), 3000)
+      const aiResult = aiResults[reportId]
+      
+      // Check if report should be rejected based on quality classification
+      if (aiResult.report_quality === 'GIBBERISH') {
+        // Reject with gibberish reason
+        const res = await fetch('/api/admin/reports', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            id: reportId,
+            reason: 'Rejected by AI: Report is gibberish or incoherent'
+          })
+        })
+        
+        if (res.ok) {
+          setReports(prev => prev.filter(r => r.id !== reportId))
+          setMetrics(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }))
+          setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+          setToast({ message: "Report rejected: Rejected by AI: Report is gibberish or incoherent", type: 'info' })
+          setTimeout(() => setToast(null), 3000)
+        } else {
+          setToast({ message: "Failed to reject report", type: 'error' })
+        }
+      } else if (aiResult.report_quality === 'EXAGGERATED/FALSE') {
+        // Reject with false/exaggerated reason
+        const res = await fetch('/api/admin/reports', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            id: reportId,
+            reason: 'Rejected by AI: Report is exaggerated or false'
+          })
+        })
+        
+        if (res.ok) {
+          setReports(prev => prev.filter(r => r.id !== reportId))
+          setMetrics(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }))
+          setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+          setToast({ message: "Report rejected: Rejected by AI: Report is exaggerated or false", type: 'info' })
+          setTimeout(() => setToast(null), 3000)
+        } else {
+          setToast({ message: "Failed to reject report", type: 'error' })
+        }
+      } else {
+        // LEGITIMATE report - approve and publish
+        const res = await fetch('/api/admin/reports', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            id: reportId,
+            cleanDescription: aiResult.clean_description,
+            scamCategory: aiResult.scam_category,
+            county: aiResult.county,
+            specificArea: aiResult.specific_area,
+            riskLevel: aiResult.risk_level,
+            processingMethod: aiResult.is_edited ? 'ai_and_moderator' : 'ai'
+          })
+        })
+        
+        if (res.ok) {
+          setReports(prev => prev.filter(r => r.id !== reportId))
+          setMetrics(prev => ({ ...prev, pending: prev.pending - 1, approved: prev.approved + 1 }))
+          setAIResults(prev => { const newResults = { ...prev }; delete newResults[reportId]; return newResults })
+          const message = aiResult.is_edited 
+            ? "Report approved and published (AI + Moderator edits)!"
+            : "Report sanitized and published!"
+          setToast({ message, type: 'info' })
+          setTimeout(() => setToast(null), 3000)
+        } else {
+          setToast({ message: "Failed to approve report", type: 'error' })
+        }
       }
     } catch (err) {
-      setToast({ message: "Failed to approve report", type: 'error' })
+      setToast({ message: "Failed to process report", type: 'error' })
     } finally {
       setActionLoading(null)
     }
@@ -340,7 +400,7 @@ export default function AdminPage() {
           <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em] mt-2">Admin Terminal</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/admin/audit" className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors uppercase tracking-widest border border-slate-800 px-4 py-2 rounded-lg flex items-center">
+          <Link href="/admn-nyuma-ya-tent/audit" className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors uppercase tracking-widest border border-slate-800 px-4 py-2 rounded-lg flex items-center">
             View Audit Logs
           </Link>
           <button
@@ -382,18 +442,60 @@ export default function AdminPage() {
 
                 {/* AI Sanitization Result - Inline Display */}
                 {aiResults[report.id] && !aiResults[report.id].error && (
-                  <div className="mb-6 bg-slate-800/50 border border-amber-500/30 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                  <div className={`mb-6 border border-amber-500/30 p-6 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                    aiResults[report.id].report_quality === 'LEGITIMATE' ? 'bg-slate-800/50' :
+                    aiResults[report.id].report_quality === 'GIBBERISH' ? 'bg-rose-500/10 border-rose-500/30' :
+                    'bg-yellow-500/10 border-yellow-500/30'
+                  }`}>
                     <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-sm font-black text-amber-500 uppercase tracking-widest">✨ AI Sanitized Version</h4>
-                      <span className="bg-amber-500/10 text-amber-500 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/20">
-                        Risk: {aiResults[report.id].risk_level}/5
-                      </span>
+                      <h4 className="text-sm font-black text-amber-500 uppercase tracking-widest">✨ AI Analysis Result</h4>
+                      <div className="flex gap-2 items-center">
+                        {aiResults[report.id].report_quality === 'LEGITIMATE' && (
+                          <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full border border-emerald-500/30">
+                            ✓ Legitimate
+                          </span>
+                        )}
+                        {aiResults[report.id].report_quality === 'GIBBERISH' && (
+                          <span className="bg-rose-500/20 text-rose-400 text-[10px] font-black px-3 py-1 rounded-full border border-rose-500/30">
+                            ⚠ Gibberish
+                          </span>
+                        )}
+                        {aiResults[report.id].report_quality === 'EXAGGERATED/FALSE' && (
+                          <span className="bg-yellow-500/20 text-yellow-400 text-[10px] font-black px-3 py-1 rounded-full border border-yellow-500/30">
+                            ⚠ False/Exaggerated
+                          </span>
+                        )}
+                        <span className="bg-amber-500/10 text-amber-500 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/20">
+                          Risk: {aiResults[report.id].risk_level}/5
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Sanitized Description</label>
-                        <p className="text-slate-200 text-sm italic bg-slate-950 p-4 rounded-lg border border-slate-800">"{aiResults[report.id].clean_description}"</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sanitized Description</label>
+                          {aiResults[report.id].is_edited && (
+                            <span className="text-[9px] font-black text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+                              Edited by Moderator
+                            </span>
+                          )}
+                        </div>
+                        <textarea
+                          value={aiResults[report.id].clean_description}
+                          onChange={(e) => {
+                            setAIResults(prev => ({
+                              ...prev,
+                              [report.id]: {
+                                ...prev[report.id],
+                                clean_description: e.target.value,
+                                is_edited: true
+                              }
+                            }))
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-200 text-sm focus:ring-2 focus:ring-amber-500 outline-none transition resize-none"
+                          rows={4}
+                        />
                       </div>
 
                       <div className="grid grid-cols-3 gap-3">
@@ -422,9 +524,22 @@ export default function AdminPage() {
                       <button
                         onClick={() => approveAISanitization(report.id)}
                         disabled={actionLoading === report.id}
-                        className="flex-1 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase transition-all disabled:opacity-50"
+                        className={`flex-1 py-2 text-sm rounded-lg font-black uppercase transition-all disabled:opacity-50 ${
+                          aiResults[report.id].report_quality === 'LEGITIMATE' 
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                            : aiResults[report.id].report_quality === 'GIBBERISH'
+                            ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                            : 'bg-yellow-600 hover:bg-yellow-500 text-slate-950'
+                        }`}
                       >
-                        {actionLoading === report.id ? 'Publishing...' : 'Approve & Publish'}
+                        {actionLoading === report.id 
+                          ? 'Processing...' 
+                          : aiResults[report.id].report_quality === 'LEGITIMATE'
+                          ? 'Approve & Publish'
+                          : aiResults[report.id].report_quality === 'GIBBERISH'
+                          ? 'Reject (Gibberish)'
+                          : 'Reject (False)'
+                        }
                       </button>
                     </div>
                   </div>

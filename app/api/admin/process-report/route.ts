@@ -37,22 +37,34 @@ export async function POST(req: Request) {
         role: "user",
         parts: [{
           text: `
-            Analyze this Kenyan scam: "${rawReport.description}"
+            Analyze this Kenyan scam report: "${rawReport.description}"
             Reported Area: "${rawReport.area || "Unknown"}"
 
             Instructions:
-            1. Rephrase for public safety (professional tone, no personal names/phones).
-            2. Choose one category from: [${categories.join(", ")}].
-            3. Standardize the County and Area. If not found, use "Unknown".
-            4. Assign Risk Level (1-5).
+            1. First, assess the QUALITY of this report:
+               - LEGITIMATE: Real scam report with coherent, verifiable details
+               - GIBBERISH: Incoherent, random text, nonsensical, or incomprehensible
+               - EXAGGERATED/FALSE: Claims that are clearly false, obviously fabricated, or wildly exaggerated
+
+            2. If LEGITIMATE, then:
+               - Rephrase for public safety (professional tone, no personal names/phones).
+               - Choose one category from: [${categories.join(", ")}].
+               - Standardize the County and Area. If not found, use "Unknown".
+               - Assign Risk Level (1-5).
+            
+            3. If GIBBERISH or EXAGGERATED/FALSE:
+               - Still provide a clean_description (cleaned-up version of input).
+               - Still classify a category (best effort).
+               - Set risk_level to 1.
 
             Return strictly as JSON:
             {
+              "report_quality": "LEGITIMATE" | "GIBBERISH" | "EXAGGERATED/FALSE",
               "clean_description": "...",
               "scam_category": "...",
               "county": "...",
               "specific_area": "...",
-              "risk_level": 3
+              "risk_level": 1-5
             }
           `
         }]
@@ -78,34 +90,17 @@ export async function POST(req: Request) {
     }
     
     // Validate required fields
-    if (!aiOutput.clean_description || !aiOutput.scam_category) {
-      throw new Error("AI response missing required fields: clean_description or scam_category");
+    if (!aiOutput.clean_description || !aiOutput.scam_category || !aiOutput.report_quality) {
+      throw new Error("AI response missing required fields: clean_description, scam_category, or report_quality");
     }
 
-    // 4. Atomic Transaction: Insert Processed -> Update Original
-    const { error: insertError } = await (await supabase)
-      .from("processed_reports")
-      .insert({
-        original_id: rawReport.id,
-        clean_description: aiOutput.clean_description,
-        scam_category: aiOutput.scam_category,
-        county: aiOutput.county || "Unknown",
-        specific_area: aiOutput.specific_area || rawReport.area || "Unknown",
-        original_incident_date: rawReport.incident_date,
-        original_created_at: rawReport.created_at,
-        processing_method: 'ai',
-        // risk_level: aiOutput.risk_level,
-        risk_level: Number(aiOutput.risk_level) || 3,
-        moderated_by: adminId
-      });
+    // Validate report_quality is one of the expected values
+    if (!['LEGITIMATE', 'GIBBERISH', 'EXAGGERATED/FALSE'].includes(aiOutput.report_quality)) {
+      throw new Error(`Invalid report_quality value: ${aiOutput.report_quality}`);
+    }
 
-    if (insertError) throw insertError;
-
-    // Mark as approved in original table
-    await (await supabase)
-      .from("scam_reports")
-      .update({ status: 'approved', is_approved: true })
-      .eq('id', reportId);
+    // 4. Return AI analysis results (don't insert/approve yet - let frontend decide)
+    // The frontend will handle approval or rejection based on report_quality
 
     return NextResponse.json({ 
       success: true, 
@@ -115,6 +110,7 @@ export async function POST(req: Request) {
         county: aiOutput.county || "Unknown",
         specific_area: aiOutput.specific_area || rawReport.area || "Unknown",
         risk_level: Math.min(5, Math.max(1, aiOutput.risk_level || 3)),
+        report_quality: aiOutput.report_quality,
         pii_removed: aiOutput.pii_removed || [],
         key_tactics: aiOutput.key_tactics || [],
         original_type: rawReport.type
