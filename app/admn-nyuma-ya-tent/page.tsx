@@ -297,7 +297,7 @@ export default function AdminPage() {
   useEffect(() => {
     async function checkAuth() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return; }
+      if (!user) { router.push('/GateKubwa'); return; }
       fetchReports()
     }
     checkAuth()
@@ -383,7 +383,7 @@ export default function AdminPage() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/GateKubwa')
   }
 
   if (loading) return (

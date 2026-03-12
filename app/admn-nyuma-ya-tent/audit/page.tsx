@@ -23,7 +23,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false)
   useEffect(() => {
     async function fetchLogs() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return; }
+      if (!user) { router.push('/GateKubwa'); return; }
 
       let query: any = supabase
         .from('report_audit_logs')
@@ -97,7 +97,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false)
   async function handleLogout() {
       // const supabase = createClient()
       await supabase.auth.signOut()
-      router.push('/login')
+      router.push('/GateKubwa')
     }
 
 
